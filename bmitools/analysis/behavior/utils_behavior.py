@@ -215,7 +215,10 @@ class ProcessCohort():
                                  'results',
                                     'cohort_hit_rates.svg'), dpi=200)
         
-
+        plt.savefig(os.path.join(self.root_dir,
+                                 'results',
+                                    'cohort_hit_rates.png'), dpi=300)
+        
         # xticks=['early','late']
         # plt.xticks(x,xticks)
         # plt.ylabel("% hit rate")
@@ -430,11 +433,11 @@ class ProcessCohort():
 
 
         # loop over animals now
-        plt.figure(figsize=(25,10))
+        plt.figure(figsize=(10,18))
         plt.suptitle("Cohort hit rate first 2 sessions vs. last 2 sessions", fontsize=20)
 
         # grab the first 2 and last 2 sessions of each of the hit_rates_m1 sessions
-        plt.subplot(121)
+        plt.subplot(211)
         plt.title("M1 mice")
         early_m1 = []
         late_m1 = []
@@ -443,19 +446,25 @@ class ProcessCohort():
             late_m1.append(np.hstack((hit_rates_m1[k][-2], hit_rates_m1[k][-1])))
 
         # plot scatter plot of early and late
-        plt.scatter(np.zeros(np.hstack(early_m1).shape[0]), np.hstack(early_m1),
+        plt.scatter(
+                    # add some horizontal jitter
+                    np.zeros(np.hstack(early_m1).shape[0]) + np.random.normal(0, 0.1, np.hstack(early_m1).shape[0]),
+                    np.hstack(early_m1),
                     edgecolor='black',
+                    s = 100,
                     c='mediumturquoise', label="early")
-        plt.scatter(np.zeros(np.hstack(late_m1).shape[0])+1, np.hstack(late_m1),
+        plt.scatter(np.zeros(np.hstack(late_m1).shape[0])+1 + np.random.normal(0, 0.1, np.hstack(late_m1).shape[0]),
+                    np.hstack(late_m1),
                     edgecolor='black',
+                    s = 100,
                     c='royalblue',
                     label="late")
         
         # plot the means as bars
-        plt.bar(0, np.mean(np.hstack(early_m1)),
+        plt.bar(0, np.nanmean(np.hstack(early_m1)),
                 width=0.9,
                 color='mediumturquoise', alpha=.5, edgecolor='black',linewidth=5)
-        plt.bar(1, np.mean(np.hstack(late_m1)),
+        plt.bar(1, np.nanmean(np.hstack(late_m1)),
                 width=0.9,
                 color='royalblue', alpha=.5, edgecolor='black',linewidth=5)
         
@@ -466,9 +475,12 @@ class ProcessCohort():
         plt.legend(title="ks test: "+str(round(res_ks[0],3))+
                     ", ks pval: "+str(round(res_ks[1],5)))
         
+        # 
+        plt.ylim(0,1)
+        
         ##################################################
         # grab the first 2 and last 2 sessions of each of the hit_rates_ca3 sessions
-        plt.subplot(122)
+        plt.subplot(212)
         plt.title("CA3 mice")
         early_ca3 = []
         late_ca3 = []
@@ -477,11 +489,15 @@ class ProcessCohort():
             late_ca3.append(np.hstack((hit_rates_ca3[k][-2], hit_rates_ca3[k][-1])))
 
         # plot scatter plot of early and late
-        plt.scatter(np.zeros(np.hstack(early_ca3).shape[0]), np.hstack(early_ca3),
+        plt.scatter(np.zeros(np.hstack(early_ca3).shape[0]) + np.random.normal(0, 0.1, np.hstack(early_ca3).shape[0]),
+                    np.hstack(early_ca3),
                     edgecolor='black',
+                    s=100,
                     c='mediumturquoise', label="early")
-        plt.scatter(np.zeros(np.hstack(late_ca3).shape[0])+1, np.hstack(late_ca3),
+        plt.scatter(np.zeros(np.hstack(late_ca3).shape[0])+1 + np.random.normal(0, 0.1, np.hstack(late_ca3).shape[0]),
+                    np.hstack(late_ca3),
                     edgecolor='black',
+                    s=100,
                     c='royalblue',
                     label="late")
         
@@ -500,8 +516,16 @@ class ProcessCohort():
         plt.legend(title="ks test: "+str(round(res_ks[0],3))+
                     ", ks pval: "+str(round(res_ks[1],5)))
         
-        
+        plt.ylim(0,1)
 
+        #
+        plt.savefig(os.path.join(self.root_dir,
+                                'cohort_hit_rates_early_vs_late.svg'))
+        plt.savefig(os.path.join(self.root_dir,
+                                'cohort_hit_rates_early_vs_late.png'), dpi=300)
+                
+        plt.close()
+        
 
     #
     def cohort_hit_rate_early_vs_late(self):
@@ -1741,9 +1765,9 @@ class ProcessSession():
         fname_out = os.path.join(self.save_dir,'session.png')
         
         #
-        if os.path.exists(fname_out) and self.recompute_session==False:
+        #if os.path.exists(fname_out) and self.recompute_session==False:
             #print ("Session already processed, skipping")
-            return
+        #    return
         #
         ########################################################
         ########################################################
@@ -1808,6 +1832,7 @@ class ProcessSession():
         plt.suptitle(self.animal_id + " " + self.session_id)
 
         plt.savefig(fname_out ,dpi=200)
+        plt.savefig(fname_out[:-4]+'.svg')
 
         # if self.show_plots:
         #     plt.show()

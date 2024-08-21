@@ -815,6 +815,8 @@ class Calcium():
         fname_out = os.path.join(self.data_dir,
                                  'binarized_traces.npz'
                                  )
+        self.save_python= True
+
 
         if os.path.exists(fname_out)==False or self.recompute_binarization:
 
@@ -2683,7 +2685,11 @@ def find_threshold_by_gaussian_fit(F_filtered, percentile_threshold):
         idx = np.where(cumsum>percentile_threshold)[0]
 
         #
-        thresh = x[idx[0]]
+        try:
+            thresh = x[idx[0]]
+        except:
+            thresh = 0
+            print ("binarization broke: ", k)
 
         #
         thresholds.append(thresh)

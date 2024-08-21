@@ -4299,14 +4299,13 @@ class ProcessCalcium():
                 fname_match = os.path.join(dir_ensembles, 
                                         'ensembles_matches_bmi_to_suite2p.npz')
                 
-                if os.path.exists(fname_match)==True:
-                    print (".... already computed...")
-                    continue
+                #if os.path.exists(fname_match)==True:
+                #    print (".... already computed...")
+                #    continue
                 
                 # there is no need to search because the ROIs are already matched
                 corrs = cell_ids
                 rois = F_filtered[cell_ids]
-
 
                 #
                 np.savez(fname_match,
@@ -4374,18 +4373,11 @@ class ProcessCalcium():
                     plt.close()
 
 
-            # we load 
+            # we load other days
             else:
                 #fname = c.sessions[session_id].session_dir + '/plane0/results.npz'
 
-                # grab the .npz results file
-                fname_results = os.path.join(self.root_dir,
-                                            self.animal_id,
-                                            str(self.session_ids[session_id]),
-                                            'data',
-                                            'results.npz')
-                
-                #
+  #
                 # save the best match ids 
                 dir_ensembles = os.path.join(self.root_dir,
                                             self.animal_id,
@@ -4396,39 +4388,41 @@ class ProcessCalcium():
                     os.mkdir(dir_ensembles)
 
                 fname_match = os.path.join(dir_ensembles, 
-                                        'ensembles_matches_bmi_to_suite2p.npz')
-                
-                if os.path.exists(fname_match)==True:
-                    print (".... already computed...")
-                    continue
+                                           'ensembles_matches_bmi_to_suite2p.npz')
 
+                #
+                if os.path.exists(fname_match):
+                    continue               
+                
+                # grab the .npz BMI FILE
+                fname_ensembles = os.path.join(self.root_dir,
+                                            self.animal_id,
+                                            str(self.session_ids[session_id]),
+                                            'ensembles',
+                                            'ensembles.npz')
+           
                 # load the results file
                 try:
-                    d = np.load(fname_results, allow_pickle=True)
+                    d = np.load(fname_ensembles, allow_pickle=True)
+                    rois = d['roi1'], d['roi2'], d['roi3'], d['roi4']
                 except:
-                    print (".npz corrupt")
+                    print ("ensembles files does not exist", fname_ensembles)
                     continue
 
                 #
-                rois1 = d['rois_traces_raw_ensemble1']
-                rois2 = d['rois_traces_raw_ensemble2']
-                # print ("rois1: ", rois1.shape)
-                # print ("rois2: ", rois2.shape)
-
-                # compute pearson correlation between each roi in the two ensembles and all the F_filtered rois
-                #   and find the best match
-                corr1 = np.zeros((2,F_filtered.shape[0]))
-                corr2 = np.zeros((2,F_filtered.shape[0]))
-
                 # these are the traces
-                rois = [rois1[0], rois1[1], rois2[0], rois2[1]]
+                #rois = [rois1[0], rois1[1], rois2[0], rois2[1]]
 
                 #
-                corrs = parmap.map(compute_corr2, 
+                try:
+                    corrs = parmap.map(compute_corr2, 
                                     rois, 
                                     F_filtered, 
                                     pm_processes=4, 
                                     pm_pbar=True)
+
+                except:
+                    corrs = np.zeros((4,100))
 
                 ##########################################################
                 ##########################################################
@@ -4471,23 +4465,25 @@ class ProcessCalcium():
                     # Now you can add axes, plot data, and set labels and titles as usual
                     ax = plt.subplot(111)  # Add an axes to the figure
                     temp = rois[k]
-                    f0 = np.median(temp)
-                    temp = (temp-f0)/f0
+                    # f0 = np.median(temp)
+                    # temp = (temp-f0)/f0
 
                     # filter temp using box filter
                     # Define the box filter kernel (window)
-                    window_size = 151  # Size of the box filter window
+                    window_size = 91  # Size of the box filter window
                     box_filter = np.ones(window_size) / window_size
 
                     # Apply the box filter using numpy's convolution function
                     temp = np.convolve(temp, box_filter, mode='same')
                     ax.plot(temp, label='ensemble roi: '+str(k),
+                            color='blue',
                              alpha=.8)
 
                     temp = np.convolve(F_filtered[np.argmax(corrs[k])], box_filter, mode='same')
                     ax.plot(temp, 
                             label='matching suite2p cell: '+str(np.argmax(corrs[k])),
                             alpha=.8,
+                            color = 'red',
                             linewidth=1)
                     
                     #
@@ -4508,36 +4504,111 @@ class ProcessCalcium():
         cmap = matplotlib.cm.get_cmap('viridis')
         colors = cmap(np.linspace(0.1, .9, len(self.session_ids)))
 
+        # 
+        self.reward_times = []
+        for session_id in np.arange(0,len(self.session_ids),1):
+            self.reward_times.append([])
+
         #
-        plt.figure(figsize=(10,10))
+        plt.figure(figsize=(14,14))
         for session_id in np.arange(1,len(self.session_ids),1):
+            _, _, reward_times = load_results_npz_standalone(self.root_dir,
+                                                    self.animal_id,
+                                                    session_id,
+                                                    self.session_ids)
+            if reward_times.shape[0]==0:
+                continue
+
+            self.reward_times[session_id] = reward_times[:,1]
+
+
+            #print ("Rewards: ", self.reward_times[session_id])
+            # manually load suite2p binarized traces
+            if self.use_matches:
+                fname_bin = os.path.join(self.root_dir, 
+                                        self.animal_id, 
+                                        str(self.session_ids[session_id]),
+                                        'plane0',
+                                        'binarized_traces.npz')
+
+                d = np.load(fname_bin)
+                try:
+                    self.F_detrended = d['F_detrended']
+                except:
+                    self.F_detrended = d["F_processed"]
+
+                if self.use_DFF:
+                    self.F_in = self.F_detrended
+                else:
+                    self.F_in = d['F_upphase']
+            else:
+                # use the ensemble .npz file
+                fname_ensembles = os.path.join(self.root_dir,
+                                            self.animal_id,
+                                            str(self.session_ids[session_id]),
+                                            'ensembles',
+                                            'ensembles.npz')
+                d = np.load(fname_ensembles, allow_pickle=True)
+                self.F_in = d['roi1'], d['roi2'], d['roi3'], d['roi4']
+
+                self.F_in = np.vstack(self.F_in)
+
 
             #
-            try:
-                psths_avg, psths_shuffled_avg, n_bursts  = get_reward_triggered_bmi_ensembles(session_id, 
+           # print ("self.F_in: ", self.F_in.shape)
+
+            #
+            if True:
+                psths_avg, _, _  = get_reward_triggered_bmi_ensembles(session_id, 
                 
-                                                                                          self,
-                                                                                          self.window)
-            except:
-                continue
+                                                                        self,
+                                                                        self.window)
+           # except:
+                # print ("error in session: ", session_id)
+                # continue
             
             # 
-            for k in range(4):
-                ax = plt.subplot(2,2,k+1)
+    #
+            t = np.arange(-self.window,self.window,1)/30
 
-                temp = np.mean(psths_avg[k],0)*100
+            pos1 = np.nanmean(psths_avg[0],0)*100
+            pos2 = np.nanmean(psths_avg[1],0)*100
+            # 
+            if self.smoothing:
+                pos1 = savgol_filter(pos1, self.smoothing_window, 3)
+                pos2 = savgol_filter(pos2, self.smoothing_window, 3)
 
-                #
-                t = np.arange(-self.window,self.window,1)/30
+            # normalize so that the zero crossing adds up to 1!
+            if self.normalize_time0:
+                val1 = pos1[self.window]
+                val2 = pos2[self.window]
 
-                plt.plot(t,temp,
+                # scales these values so they add up to 100
+                scale = 100/(val1+val2)
+
+                pos1 = pos1*scale
+                pos2 = pos2*scale
+
+            traces = []
+            traces.append(pos1)
+            traces.append(pos2)
+            traces.append(np.nanmean(psths_avg[2],0)*100)
+            traces.append(np.nanmean(psths_avg[3],0)*100) 
+
+            for k in range(len(traces)):
+            
+            #
+                plt.subplot(2,2,k+1)
+                plt.plot(t,traces[k],
                         c=colors[session_id],
+                        linewidth = 4,
+                        alpha=0.75,
                         label = self.session_types[session_id] if k==0 else '')
                 
                 plt.title(roi_names[k])
 
                 # plot vertical line at t=0
-                plt.plot([0,0],[0,100],'--',c='red')
+                plt.plot([0,0],[0,100],'--',c='grey')
 
                 # plot horizontal line at y = 0
                 plt.plot([-self.window/30.,
@@ -4557,12 +4628,23 @@ class ProcessCalcium():
                 #
                 if k==0:
                     plt.legend()
-
+                    
+            
         #  
         plt.suptitle(self.animal_id+ " " + str(self.rec_type))
 
         # 
-        plt.show()
+
+        plt.savefig(os.path.join(self.root_dir,
+                                 self.animal_id,
+                                'ensemble_reward_triggered_average.svg'))
+        
+        #
+        plt.savefig(os.path.join(self.root_dir,
+                            self.animal_id,
+                        'ensemble_reward_triggered_average.png'),dpi=300)
+                        
+        plt.close()
         
     #
     def load_sessions(self):
@@ -4594,12 +4676,12 @@ class ProcessCalcium():
             if ctrs>0:
                 try:
                     _, _, reward_times = load_results_npz_standalone(self.root_dir,
-                                                            self.animal_id,
-                                                            ctrs,
-                                                            self.session_ids)
+                                                                    self.animal_id,
+                                                                    ctrs,
+                                                                    self.session_ids)
                     reward_times = reward_times[:,1]
                 except:
-                    print ("couldn't reward results.npz file...")
+                    print ("couldn't grab rewards from results.npz file...")
                     reward_times = []
 
             else:
@@ -5108,7 +5190,14 @@ def load_results_npz_standalone(root_dir,
                         'data',
                         'results.npz')
     #
-    results = np.load(fname, allow_pickle=True)
+    try:
+        results = np.load(fname, allow_pickle=True)
+    except:
+        rois_traces_smooth1 = np.zeros(90000)+np.nan
+        rois_traces_smooth2 = np.zeros(90000)+np.nan
+        reward_times = np.zeros((0,2))+np.nan
+
+        return rois_traces_smooth1, rois_traces_smooth2, reward_times
 
     # load all fields 
     # self.ttl_voltages = results['ttl_voltages']
@@ -5180,29 +5269,35 @@ def get_reward_triggered_bmi_ensembles(session_id,
 
     # get reward times for session
     reward_times = c.reward_times[session_id]
-   # print ("session: ", session_id, " of", len(c.session_ids)-1, ",  reward times: ", reward_times.shape)
+    print ("session: ", session_id, " of", len(c.session_ids)-1, ",  reward times: ", reward_times.shape)
 
     # get cells
-    if c.use_DFF:
-        cells = c.sessions[session_id].F_detrended
-    else:
-        cells = c.sessions[session_id].F_upphase_bin
+    # if c.use_DFF:
+    #     cells = c.sessions[session_id].F_detrended
+    # else:
+    #     cells = c.sessions[session_id].F_upphase_bin
+    cells = c.F_in
 
+    ################################################################
+    ################################################################
+    ################################################################
     # load the esnembel matching info
-    fname_ensemble_matching = os.path.join(c.root_dir,
-                                            c.animal_id,
-                                            str(c.session_ids[session_id]),
-                                            'ensembles',
-                                            'ensembles_matches_bmi_to_suite2p.npz')
+    if c.use_matches:
+        fname_ensemble_matching = os.path.join(c.root_dir,
+                                                c.animal_id,
+                                                str(c.session_ids[session_id]),
+                                                'ensembles',
+                                                'ensembles_matches_bmi_to_suite2p.npz')
 
-    #
-    d = np.load(fname_ensemble_matching, allow_pickle=True)
-    idxs = []
-    idxs.append(d['idx_ensemble1_0'])
-    idxs.append(d['idx_ensemble1_1'])
-    idxs.append(d['idx_ensemble2_0'])
-    idxs.append(d['idx_ensemble2_1'])
-    
+        d = np.load(fname_ensemble_matching, allow_pickle=True)
+        idxs = []
+        idxs.append(d['idx_ensemble1_0'])
+        idxs.append(d['idx_ensemble1_1'])
+        idxs.append(d['idx_ensemble2_0'])
+        idxs.append(d['idx_ensemble2_1'])
+    else:
+        idxs = np.arange(4)
+        
     #
     psth = []
     psth_shuffled = []
@@ -5212,6 +5307,8 @@ def get_reward_triggered_bmi_ensembles(session_id,
         psth.append([])
         psth_shuffled.append([])
         temp = cells[idx]
+        if c.DFF_normalize:
+            temp = temp / np.max(temp)
 
         # count the number of bursts in temp
         diff = temp[1:]-temp[:-1]
@@ -5244,6 +5341,7 @@ def get_reward_triggered_bmi_ensembles(session_id,
 
     return psths, psths_shuffled, n_bursts
 
+#
 def get_reward_triggered_psth(session_id, 
                               c,
                               window,
@@ -7172,3 +7270,118 @@ def make_ensemble_graphs_statistics_allcells(c, plotflag=False):
     
     #
     plt.show()
+
+
+
+#############################################################
+############# PAIRWISE CORRELATION DISTRIBUTIONS ############
+#############################################################
+def compute_pairwise_differences(c):
+    
+    from utils_calcium import compute_ensemble_only_correlations
+    #import parmap
+
+    cmap = matplotlib.cm.get_cmap('viridis')
+    colors = cmap(np.linspace(0.1, 0.9, len(c.session_ids)))
+    clrs = ['blue','lightblue','red','pink']
+    roi_names = ['pos1','pos2','neg1','neg2']
+
+    #
+    compute_ensemble_only_correlations(c)
+
+    #
+
+    data_arrays = []
+    for k in range(4):
+        data_arrays.append([])
+    #
+    for session_id in range(1,len(c.session_ids)):
+        fname_ensemble_matching = os.path.join(c.root_dir, 
+                                            c.animal_id, 
+                                            str(c.session_ids[session_id]), 
+                                            'ensembles',
+                                            'ensembles_matches_bmi_to_suite2p.npz')
+        
+        print ("fname_ensemble_matching: ", fname_ensemble_matching)
+        try:
+            data = np.load(fname_ensemble_matching, allow_pickle=True)
+        except:
+            print ("missing file: ", fname_ensemble_matching)
+            # save empty arrays
+            blank_data = np.arange(-0.2,0.5,0.025)*0 + np.nan
+            ctr=0
+            for idx in idxs:
+                data_arrays[ctr].append(blank_data)
+                ctr+=1
+
+            continue
+
+        #
+        idxs = []
+        idxs.append(data['idx_ensemble1_0'])
+        idxs.append(data['idx_ensemble1_1'])
+        idxs.append(data['idx_ensemble2_0'])
+        idxs.append(data['idx_ensemble2_1'])
+        idxs = np.array(idxs)
+        print ("idxs: ", idxs)
+
+        # load the cell correlation vals 
+        dir_corrs = os.path.join(c.root_dir,
+                                    c.animal_id,
+                                    str(c.session_ids[session_id]),
+                                    'plane0',
+                                    'correlations')
+        
+        # chekc if dir exists
+        if os.path.exists(dir_corrs)==False:
+            os.mkdir(dir_corrs)
+
+        # load the cell correlation vals using idxs as the ensemble
+        ctr=0
+        for idx in idxs:
+            fname_corr = os.path.join(dir_corrs, str(idx)+'.npz')
+
+            #
+            data = np.load(fname_corr, allow_pickle=True)
+            pc = data['pearson_corr']
+
+            # delete nans
+            idx = np.where(np.isnan(pc)==False)[0]
+            pc = pc[idx]
+
+            # make histogram of pc
+            # y = np.histogram(pc, bins=np.arange(-0.2,0.5,0.025))
+            # xx = y[1][:-1]
+            # yy = y[0]
+        
+            #
+            if True:
+                # clip the values to -0.2 to 0.3
+            # idx2 = np.where((pc>-0.1)*(pc<0.15))[0]
+                #pc = pc[idx2]
+                #print (ctr, pc.shape)
+
+                # convert the values to a histogram
+                y = np.histogram(pc, bins=np.arange(-0.2,0.5,0.025))
+
+                #
+                data_arrays[ctr].append(y[0])
+
+
+
+            #
+            ctr+=1
+
+    # save data_arrays to each animal folder
+    fname_out = os.path.join(c.root_dir, c.animal_id, 'ensemble_pairwise_correlations.npz')
+
+    #
+    np.savez(fname_out,
+            xx = y[1],
+            pos1=np.array((data_arrays[0])),
+            pos2=np.array((data_arrays[1])),
+            neg1=np.array((data_arrays[2])),
+            neg2=np.array((data_arrays[3])))
+                       
+
+         

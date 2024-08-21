@@ -427,25 +427,60 @@ class Calcium():
         self.fix_data_dir()
         
         #
-        self.F = np.load(os.path.join(self.data_dir,
+        try:
+            self.F = np.load(os.path.join(self.data_dir,
                                       'F.npy'), allow_pickle=True)
-        self.Fneu = np.load(os.path.join(self.data_dir,
+        except:
+            print ("ERROR: could not load F.npy")
+            self.F = None
+        
+        #
+        try:
+            self.Fneu = np.load(os.path.join(self.data_dir,
                                       'Fneu.npy'), allow_pickle=True)
+        except:
+            print ("ERROR: could not load Fneu.npy")
+            self.Fneu = None
 
-        self.iscell = np.load(os.path.join(self.data_dir,
+        #
+        try:
+            self.iscell = np.load(os.path.join(self.data_dir,
                                       'iscell.npy'), allow_pickle=True)
+        except:
+            print ("ERROR: could not load iscell.npy")
+            self.iscell = None
 
-        self.ops = np.load(os.path.join(self.data_dir,
+        #
+        try:
+            self.ops = np.load(os.path.join(self.data_dir,
                                       'ops.npy'), allow_pickle=True)
+        except:
+            print ("ERROR: could not load ops.npy")
+            self.ops = None
 
-        self.spks = np.load(os.path.join(self.data_dir,
+        #
+        try:
+            self.spks = np.load(os.path.join(self.data_dir,
                                       'spks.npy'), allow_pickle=True)
+        except:
+            print ("ERROR: could not load spks.npy")
+            self.spks = None
 
-        self.stat = np.load(os.path.join(self.data_dir,
+        #
+        try:    
+            self.stat = np.load(os.path.join(self.data_dir,
                                       'stat.npy'), allow_pickle=True)
+        except:
+            print ("ERROR: could not load stat.npy")
+            self.stat = None
 
-        self.session_dir = os.path.join(self.data_dir,
+        #
+        try:
+            self.session_dir = os.path.join(self.data_dir,
                                    'plane0')
+        except:
+            print ("ERROR: could not load session_dir")
+            self.session_dir = None
 
 
 
@@ -453,19 +488,22 @@ class Calcium():
         ################## REMOVE NON-CELLS ########################
         ############################################################
         #
-        if remove_bad_cells:
-            idx = np.where(self.iscell[:,0]==1)[0]
-            self.F = self.F[idx]
-            self.Fneu = self.Fneu[idx]
+        if self.F is not None:
+            if remove_bad_cells:
+                idx = np.where(self.iscell[:,0]==1)[0]
+                self.F = self.F[idx]
+                self.Fneu = self.Fneu[idx]
 
-            self.spks = self.spks[idx]
-            self.stat = self.stat[idx]
+                self.spks = self.spks[idx]
+                self.stat = self.stat[idx]
+    
+            #
+            std_global = self.compute_std_global(self.F)
 
         #############################################################
         ########### COMPUTE GLOBAL MEAN - REMOVE MEAN ###############
         #############################################################
 
-        std_global = self.compute_std_global(self.F)
         if self.verbose:
             print ("  Fluorescence data loading information")
             print ("         sample rate: ", self.sample_rate, "hz")
@@ -1053,6 +1091,10 @@ class Calcium():
 
     #
     def load_footprints(self):
+
+        
+
+
         dims = [512, 512]
 
         img_all = np.zeros((dims[0], dims[1]))

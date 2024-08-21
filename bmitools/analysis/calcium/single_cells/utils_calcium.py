@@ -6214,9 +6214,21 @@ def generate_learning_profiles(root_dir,
                                norm_percentage, 
                                normalize):
 
+    line_styles = ['-', ':', '-', ':', '-', ':', '-', ':', '-', ':', ]
+    
+    #clrs = ['black','red']
+    clrs_m1 = ['green','lightseagreen','blue','navy','darkblue','lightblue', 'indigo','darkgreen',
+                # dark 
+                'brown']
+    clrs_ca3 = ['red','darkred','lightcoral','orange','gold','magenta']
+    #clrs = ['black','red', 'blue', 'green', 'orange', 'purple', 'pink', 'brown']
+    ctr_m1 = 0
+    ctr_ca3 = 0
+ 
     #
     fig = plt.figure(figsize=(10,10))
     pops = [[],[],[]]
+    ctrx=0
     for animal_id in tqdm(animal_ids):
 
         #session_ids = np.arange(1,len(c.session_ids),1)
@@ -6239,7 +6251,7 @@ def generate_learning_profiles(root_dir,
         #
         n_cells = []
         if animal_id in ['DON-011733']:
-            thresh = 0.1
+            thresh = 0.15
         else:
             thresh = threshold
 
@@ -6303,17 +6315,29 @@ def generate_learning_profiles(root_dir,
         #
         engagement = n_cells[-1]/n_cells[0]
 
-        #print ("n_cells: ", n_cells)
+        # 
         if n_cells.shape[0]<8:
             n_cells = np.concatenate((n_cells, np.zeros(8-n_cells.shape[0])+np.nan))
         
+        if group_name=='M1':
+            clr_in = clrs_m1[ctr_m1]
+            ctr_m1+=1
+        else:
+            clr_in = clrs_ca3[ctr_ca3]
+            ctr_ca3+=1
+
         #
         plt.plot(n_cells,
                 linewidth = 10, 
-                label=animal_id + " " + str(np.round(engagement*100,2)) + "%")
+                linestyle=line_styles[ctrx],
+                c=clr_in,
+                label=animal_id + " " + str(np.round(engagement*100,2)) + "%"
+                )
         #
         pops[idx].append(n_cells)
         
+        ctrx+=1
+
         #
         plt.legend()
 
@@ -6335,10 +6359,10 @@ def generate_learning_profiles(root_dir,
             pass
     
     #
-    plt.ylim(0,70)
+    plt.ylim(0,45)
     plt.xlim(left=0)
 
-
+    #
     plt.savefig(os.path.join(root_dir, 'learning_profiles_'+group_name+'.svg'))
     plt.close()
 

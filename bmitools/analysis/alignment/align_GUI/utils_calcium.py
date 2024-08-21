@@ -3460,7 +3460,7 @@ class ProcessCalcium():
                             )
 
             #
-            try:
+            if True:
                 C = Calcium()       
                 C.data_dir = data_dir
 
@@ -3479,9 +3479,9 @@ class ProcessCalcium():
                 #print ("loading binarization")
                 C.load_binarization()
             
-            except:
-                print ("could not load session: ", session_)
-                C = None
+            #except:
+            #    print ("could not load session: ", session_)
+            #    C = None
 
             # also load the contours from 'rois_pixels_and_contours.npz'
             if self.session_types[ctr]!='day0':
@@ -3491,6 +3491,8 @@ class ProcessCalcium():
                                         'rois_pixels_and_thresholds.npz') 
                 #
                 data = np.load(fname, allow_pickle=True)
+                # print keys of data
+                print (fname)
                 C.ensemble1_contours = data['ensemble1_contours']
                 C.ensemble2_contours = data['ensemble2_contours']
 
