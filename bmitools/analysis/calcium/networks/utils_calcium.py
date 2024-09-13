@@ -5243,7 +5243,7 @@ def plot_multi_session_psth_imshow(c,
                                    vmax):
     
     #
-    #plt.figure()
+    plt.figure(figsize=(20,10))
     from matplotlib import gridspec
     # make a gridspec with 7 rows and 7 columns
     gs = gridspec.GridSpec(8,len(c.session_ids)-1)
@@ -5254,7 +5254,7 @@ def plot_multi_session_psth_imshow(c,
         ax = plt.subplot(gs[:6, k])
 
         #
-        ax.imshow(psth_array[k],
+        ax.imshow(psth_array[k][::-1],
                   aspect='auto',
                   interpolation='none',
                   vmin=0,vmax=vmax)
@@ -5330,7 +5330,16 @@ def plot_multi_session_psth_imshow(c,
                 alpha=0.5)
 
     #
-    plt.suptitle(c.animal_id + " "+c.rec_type+ " (Vmax = "+str(vmax)+")",fontsize=14)
+    plt.suptitle(c.animal_id + " "+c.rec_type+ " (Yellow = "+str(vmax)+" prob of burst)",fontsize=14)
+
+    # 
+    fname_out = os.path.join(c.root_dir,
+                            c.animal_id,
+                            'results',
+                            c.animal_id+'_'+c.rec_type+'_multi_session_psth_imshow.svg')
+
+    #
+    plt.savefig(fname_out)
 
     plt.show()
 

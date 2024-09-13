@@ -3100,7 +3100,7 @@ class ProcessSession():
                     
             ctr_sess+=1
         plt.suptitle(self.animal_id  + " Raw fluorescence based xcorrelation")
-        plt.savefig(os.path.join(self.save_dir, 'correlograms_fluorescence.png'), dpi=200)
+        plt.savefig(os.path.join(self.save_dir, 'correlograms_fluorescence.svg'), dpi=200)
         #import time
         #time.sleep(1)
         plt.close()
@@ -3747,7 +3747,7 @@ class ProcessSession():
                                          session_id,
                                          'results')
 
-            burst_array = np.load(os.path.join(load_dir, 'cell_burst_histogram_v2.npy'))
+            burst_array = np.load(os.path.join(load_dir, 'cell_burst_histogram.npy'))
 
             bursts_all.append(burst_array)
             #
@@ -3796,12 +3796,14 @@ class ProcessSession():
         plt.suptitle(self.animal_id)
 
         plt.savefig(os.path.join(self.save_dir,
-                                 'n_bursts_per_session.png'), dpi=200)
+                                 'n_bursts_per_session.svg'), dpi=200)
         # if self.show_plots:
         #     plt.show()
         # else:
         plt.close()
 
+        return
+    
         #########################################################
         #########################################################
         #########################################################

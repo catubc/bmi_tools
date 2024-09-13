@@ -340,7 +340,7 @@ class Calcium():
         #self.percentile_threshold = 0.99999
         self.use_upphase = True
         self.parallel_flag = True
-        #self.maximum_std_of_signal = 0.03
+        self.maximum_std_of_signal = 0.03
 
         # these are paramters for inscopix which returns weird distributions
         self.moment = 2

@@ -215,7 +215,7 @@ class ProcessCalcium():
             fname = os.path.join(
                                 self.root_dir,
                                 self.animal_id,
-                                self.session_ids[1],
+                                str(self.session_ids[1]),
                                 'rois_pixels_and_thresholds.npz')
 
             data = np.load(fname, allow_pickle=True)
@@ -941,18 +941,22 @@ class ProcessCalcium():
         fname = os.path.join(
                             self.root_dir,
                             self.animal_id,
-                            self.session_ids[self.session_id],
+                            str(self.session_ids[self.session_id]),
                             'reward_centered_traces_rewardwindow_'+str(self.reward_window)+'.npy')
         #
         fname_shuffled = os.path.join(
                             self.root_dir,
                             self.animal_id,
-                            self.session_ids[self.session_id],
+                            str(self.session_ids[self.session_id]),
                             'reward_centered_traces_rewardwindow_'+str(self.reward_window)+'_shuffled.npy')
 
         #
         self.reward_centered_traces = np.load(fname, allow_pickle=True)
-        self.reward_centered_traces_shuffled = np.load(fname_shuffled, allow_pickle=True)
+        try:
+            self.reward_centered_traces_shuffled = np.load(fname_shuffled, allow_pickle=True)
+        except:
+            print ("Could not load shuffled traces")
+            self.reward_centered_traces_shuffled = np.zeros_like(self.reward_centered_traces)
 
         # compute the mean of temp in the first axis
         temp = np.mean(self.reward_centered_traces,0)
